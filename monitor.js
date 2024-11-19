@@ -4,7 +4,7 @@ const twilio=require('twilio');
 require("dotenv").config()
 const fs=require("fs");
 
-const addressesData=fs.readFileSync("addresses.json");
+const addressesData=fs.readFileSync("polygon_addresses.json");
 const addresses=new Set(JSON.parse(addressesData));
 
 // const transferEventSignature=ethers.utils.id("'Transfer(address,address,uint256)'");
@@ -19,7 +19,7 @@ const chains = [
     {
         name: 'Polygon mainnet',
         rpcUrl: process.env.POLYGON_RPC_URL, // Polygon  RPC URL
-        tokenContract: process.env.POLYGON_TOKEN_CONTRACT, // SAND Token contract on Polygon
+        tokenContract: process.env.POLYGON_USDT_TOKEN, // USDT Token contract on Polygon
     }
 ];
 
@@ -43,7 +43,7 @@ const monitor=async(chain)=>{
 
     contract.on('Transfer',async(from,to,value,event)=>{
         try{
-            // console.log("event :",event);
+            // console.log("Provider Structure:\n",provider);
             const transactionHash=event.log.transactionHash;
             const blockNumber=event.log.blockNumber;
             const timestamp=await getBlockTimestamp(provider,blockNumber);
@@ -51,7 +51,7 @@ const monitor=async(chain)=>{
             const tokenAmount=ethers.formatUnits(stringValue,tokenDecimal);
 
             if(addresses.has(from) || addresses.has(to)){
-                console.log("Match found on :",chain.name);
+                console.log("\nMatch found on :",chain.name);
                 console.log(`Transaction hash ${transactionHash}`);
                 console.log(`From: ${from}`);
                 console.log(`To: ${to}`);
@@ -60,18 +60,19 @@ const monitor=async(chain)=>{
                 console.log(`Token value: ${tokenAmount}`);
                 console.log(`Token name ${tokenName}`);
 
-                try{
-                    const message=await client.messages.create({
-                        body:`Transaction alert on ${chain.name} \nTxn hash: ${transactionHash} \nFrom: ${from} \nTo:${to} \nAmount: ${tokenAmount} ${tokenName} \nTime:${timestamp}`,
-                        from: process.env.TWILIO_NUMBER,
-                        to: process.env.MY_MOBILE_NUMBER
+            //     try{
+            //         const message=await client.messages.create({
+            //             body:`Transaction alert on ${chain.name} \nTxn hash: ${transactionHash} \nFrom: ${from} \nTo:${to} \nAmount: ${tokenAmount} ${tokenName} \nTime:${timestamp}`,
+            //             from: process.env.TWILIO_NUMBER,
+            //             to: process.env.MY_MOBILE_NUMBER
 
-                    });
-                    console.log('Message sent successfully:', message.sid);
-                }
-             catch(error){
-                console.error('Error sending message:', error.message);
-            }
+            //         });
+            //         console.log('Message sent successfully:', message.sid);
+            //     }
+            //  catch(error){
+            //     console.error('Error sending message:', error.message);
+            // }
+
             }
         }
         catch(err){
@@ -89,6 +90,7 @@ const monitor=async(chain)=>{
 
 const getBlockTimestamp = async (provider, blockNumber) => {
     const block = await provider.getBlock(blockNumber);
+    // console.log("Block structure: \n",block);
     return new Date(block.timestamp * 1000);
 };
 
